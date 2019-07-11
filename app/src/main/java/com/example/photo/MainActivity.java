@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
 
     String dd;
 
+    Bitmap bitmapsmall;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -223,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         // 将拍摄的照片显示出来
                         Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
-                        bitmapp=bitmap;
+                        bitmapp=BitmapFactory.decodeFile(getExternalCacheDir()+"/output_image.jpg",getBitmapOption(6));
                         picture.setImageBitmap(bitmap);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -380,5 +382,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+    private BitmapFactory.Options getBitmapOption(int inSampleSize)
+
+    {
+        System.gc();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPurgeable = true;
+        options.inSampleSize = inSampleSize;
+        return options;
     }
 }
