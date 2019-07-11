@@ -11,6 +11,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.ContentUris;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -86,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
 
     Bitmap bitmapsmall;
 
+    SharedPreferences.Editor editor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         Button chooseFromAlbum = (Button) findViewById(R.id.choose_from_album);
         Button save = (Button)findViewById(R.id.save);
         Button sendRequest = (Button)findViewById(R.id.upload);
+        Button preference = (Button)findViewById(R.id.preference);
         picture = (ImageView) findViewById(R.id.picture);
         responseText=(TextView)findViewById(R.id.response_text);
 
@@ -126,6 +130,20 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 saveBitmapFile(bitmapp);
                 post_file(file);
+            }
+        });
+        preference.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        SharedPreferences pref = getSharedPreferences("data",MODE_PRIVATE);
+                        String log =pref.getString("log","");
+                        Toast.makeText(MainActivity.this,log,Toast.LENGTH_SHORT).show();
+                        responseText.setText(log);
+                    }
+                });
             }
         });
         chooseFromAlbum.setOnClickListener(new View.OnClickListener() {
@@ -184,6 +202,8 @@ public class MainActivity extends AppCompatActivity {
                                             +"\n平静："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getNeutral()
                                             +"\t伤心："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getSadness()
                                             +"\t惊讶："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getSurprise());
+                                    editor = getSharedPreferences("data",MODE_PRIVATE).edit();
+                                    editor.putString("log",responseText.getText().toString());editor.apply();
                                     Log.d(TAG,d);
                                 }
                             });
@@ -372,6 +392,8 @@ public class MainActivity extends AppCompatActivity {
                                     +"\t伤心："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSadness()
                                     +"\t惊讶："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSurprise());
                             Log.d(TAG,dd);
+                            editor = getSharedPreferences("data",MODE_PRIVATE).edit();
+                            editor.putString("log",responseText.getText().toString());editor.apply();
                         }
                     });
 

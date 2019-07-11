@@ -24,11 +24,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="保存照片并分析结果（先点上面的再点我）"/>
-    <Button
-        android:id="@+id/upload"
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="结果示例"/>
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/upload"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="结果示例"/>
+        <Button
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="读取上次的数据"
+            android:id="@+id/preference"/>
+    </LinearLayout>
     <TextView
     android:id="@+id/response_text"
     android:layout_width="match_parent"
