@@ -1,5 +1,6 @@
 package com.example.photo;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -51,6 +52,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.valueOf;
 
 public class MainActivity extends AppCompatActivity {
     public static final int TAKE_PHOTO = 1;
@@ -73,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
 
     String responseData;
 
+    File file;
+
+    String dd;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
         Button sendRequest = (Button)findViewById(R.id.upload);
         picture = (ImageView) findViewById(R.id.picture);
         responseText=(TextView)findViewById(R.id.response_text);
+
         takePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -111,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 saveBitmapFile(bitmapp);
+                post_file(file);
             }
         });
         chooseFromAlbum.setOnClickListener(new View.OnClickListener() {
@@ -210,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         // 将拍摄的照片显示出来
                         Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
+                        bitmapp=bitmap;
                         picture.setImageBitmap(bitmap);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -292,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
         realfile = Environment.getExternalStorageDirectory().toString()+"/001.jpg";
         Log.d("result",realfile);
         Toast.makeText(this,realfile,Toast.LENGTH_SHORT).show();
-        File file=new File(realfile);//将要保存图片的路径
+        file=new File(realfile);//将要保存图片的路径
         try{
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file));
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
@@ -306,5 +320,65 @@ public class MainActivity extends AppCompatActivity {
         Gson gson = new Gson();
         FaceBean faceBean = gson.fromJson(res,FaceBean.class);
         return faceBean;
+    }
+    protected void post_file(File file) {
+        OkHttpClient client = new OkHttpClient();
+        // form 表单形式上传
+        MultipartBody.Builder requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        if(file != null){
+            // MediaType.parse() 里面是上传的文件类型。
+            RequestBody body = RequestBody.create(MediaType.parse("image/jpg"), file);
+            String filename = file.getName();
+            // 参数分别为， 请求key ，文件名称 ， RequestBody
+            requestBody.addFormDataPart("image_file", file.getName(), body);
+            requestBody.addFormDataPart("api_key", "f8FQX5Z_LHY9ObTzQG4M_czr4kDQz7fq");
+            requestBody.addFormDataPart("api_secret", "0rVTpXFEI2GmD4ZJupdd0mmeZ6fQgLBh");
+            requestBody.addFormDataPart("return_attributes", "gender,age,emotion,ethnicity,beauty");
+        }
+
+        Request request = new Request.Builder().url("https://api-cn.faceplusplus.com/facepp/v3/detect")
+                .post(requestBody.build()).build();
+        // readTimeout("请求超时时间" , 时间单位);
+        client.newBuilder().readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.i("lfq" ,"onFailure");
+                //Toast.makeText(MainActivity.this,"upload error",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    dd = response.body().string();
+                    Log.i("lfq", response.message() + " , body " + dd);
+                    //Toast.makeText(MainActivity.this,realfile,Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "<<<<d=" + dd);
+                    faces = getFace(dd);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            responseText.setText("女生认为你的颜值是："+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getFemale_score()
+                                    +"\n男生认为你的颜值是："+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getMale_score()
+                                    +"\n你的年龄是"+getFace(dd).getFaces().get(0).getAttributes().getAge().getValue()
+                                    +"\n你的性别是"+getFace(dd).getFaces().get(0).getAttributes().getGender().getValue()
+                                    +"\n你的人种是"+getFace(dd).getFaces().get(0).getAttributes().getEthnicity().getValue()
+                                    +"\n经过分析，你这张照片传递出来的各种情绪的概率是：\n愤怒："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getAnger()
+                                    +"\t厌恶："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getDisgust()
+                                    +"\t恐惧："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getFear()
+                                    +"\t高兴："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getHappiness()
+                                    +"\n平静："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getNeutral()
+                                    +"\t伤心："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSadness()
+                                    +"\t惊讶："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSurprise());
+                            Log.d(TAG,dd);
+                        }
+                    });
+
+                } else {
+                    Log.i("lfq" ,response.message() + " error : body " + response.body().string());
+                    //Toast.makeText(MainActivity.this,"return error",Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
     }
 }
