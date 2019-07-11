@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="visible"
+    android:orientation="vertical"
+    tools:context=".MainActivity"
+    tools:visibility="visible">
+
+    <Button
+        android:id="@+id/take_photo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Take	Photo" />
+    <Button
+        android:id="@+id/choose_from_album"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose From Album" />
+    <Button
+        android:id="@+id/save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="save photo"/>
+    <Button
+        android:id="@+id/upload"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="send request"/>
+    <TextView
+    android:id="@+id/response_text"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="TextView" />
+    <ImageView
+        android:id="@+id/picture"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal" />
+
+
+
+
+</LinearLayout>
