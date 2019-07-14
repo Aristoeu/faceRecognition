@@ -1,6 +1,7 @@
 package com.example.photo;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -53,10 +54,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 
 import static java.lang.String.valueOf;
 
@@ -77,9 +81,9 @@ public class MainActivity extends AppCompatActivity {
 
     FaceBean faces;
 
-    TextView responseText;
+    TextView responseText,yanzhi,age,ethnicity,gender,emotion,praise;
 
-    String responseData;
+    String responseData,emotions;
 
     File file;
 
@@ -89,17 +93,31 @@ public class MainActivity extends AppCompatActivity {
 
     SharedPreferences.Editor editor;
 
+    double disgust,fear,happiness,neutral,sadness,surprise,anger;
+
+    String emoti,genders,ethic,realethic;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ActionBar actionBar=getSupportActionBar();
+        if (actionBar!=null){
+            actionBar.hide();
+        }
         Button takePhoto = (Button) findViewById(R.id.take_photo);
         Button chooseFromAlbum = (Button) findViewById(R.id.choose_from_album);
         Button save = (Button)findViewById(R.id.save);
-        Button sendRequest = (Button)findViewById(R.id.upload);
+       // Button sendRequest = (Button)findViewById(R.id.upload);
         Button preference = (Button)findViewById(R.id.preference);
         picture = (ImageView) findViewById(R.id.picture);
         responseText=(TextView)findViewById(R.id.response_text);
+        emotion=(TextView)findViewById(R.id.fra_emotion);
+        age=(TextView)findViewById(R.id.fra_age);
+        gender=(TextView)findViewById(R.id.fra_gender);
+        ethnicity=(TextView)findViewById(R.id.fra_ethnicity);
+        yanzhi=(TextView)findViewById(R.id.fra_yanzhi);
+        praise=(TextView)findViewById(R.id.praise);
 
         takePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -156,63 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        sendRequest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.d(TAG,"start successfullyyyy");
-                OkHttpClient client = new OkHttpClient();
-                RequestBody body = new FormBody.Builder()
-                        .add("api_key", "f8FQX5Z_LHY9ObTzQG4M_czr4kDQz7fq")
-                        .add("api_secret", "0rVTpXFEI2GmD4ZJupdd0mmeZ6fQgLBh")
-                        //"http://p1.meituan.net/wedding/ecb5a4f726cc718b97dac68c9886e4cc148515.jpg"
-                        .add("image_url", "http://p1.meituan.net/wedding/ecb5a4f726cc718b97dac68c9886e4cc148515.jpg")
-                        .add("return_attributes", "gender,age,emotion,ethnicity,beauty")
-                        .build();
-                final Request request = new Request.Builder()
-                        .url("https://api-cn.faceplusplus.com/facepp/v3/detect")
-                        .post(body).build();
-                Call call = client.newCall(request);
 
-                call.enqueue(new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        Log.d(TAG, "<<<<e=" + e);
-                        //Toast.makeText(MainActivity.this,"connect failed",Toast.LENGTH_LONG);
-
-                    }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (response.isSuccessful()) {
-                            final String d = response.body().string();
-                            Log.d(TAG, "<<<<d=" + d);
-                            faces = getFace(d);
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    responseText.setText("女生认为你的颜值是："+getFace(d).getFaces().get(0).getAttributes().getBeauty().getFemale_score()
-                                            +"\n男生认为你的颜值是："+getFace(d).getFaces().get(0).getAttributes().getBeauty().getMale_score()
-                                            +"\n你的年龄是"+getFace(d).getFaces().get(0).getAttributes().getAge().getValue()
-                                            +"\n你的性别是"+getFace(d).getFaces().get(0).getAttributes().getGender().getValue()
-                                            +"\n你的人种是"+getFace(d).getFaces().get(0).getAttributes().getEthnicity().getValue()
-                                            +"\n经过分析，你这张照片传递出来的各种情绪的概率是：\n愤怒："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getAnger()
-                                            +"\t厌恶："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getDisgust()
-                                            +"\t恐惧："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getFear()
-                                            +"\t高兴："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getHappiness()
-                                            +"\n平静："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getNeutral()
-                                            +"\t伤心："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getSadness()
-                                            +"\t惊讶："+getFace(d).getFaces().get(0).getAttributes().getEmotion().getSurprise());
-                                    editor = getSharedPreferences("data",MODE_PRIVATE).edit();
-                                    editor.putString("log",responseText.getText().toString());editor.apply();
-                                    Log.d(TAG,d);
-                                }
-                            });
-                            //Toast.makeText(MainActivity.this,"connect successfully",Toast.LENGTH_LONG);
-                        }
-                    }
-                });
-            }
-        });
 
 
     }
@@ -317,7 +279,8 @@ public class MainActivity extends AppCompatActivity {
     private void displayImage(String imagePath) {
         if (imagePath != null) {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            bitmapp=bitmap;
+           // bitmapp=bitmap;
+            bitmapp=BitmapFactory.decodeFile(imagePath,getBitmapOption(6));
             picture.setImageBitmap(bitmap);
         } else {
             Toast.makeText(this, "failed to get image", Toast.LENGTH_SHORT).show();
@@ -376,24 +339,73 @@ public class MainActivity extends AppCompatActivity {
                     //Toast.makeText(MainActivity.this,realfile,Toast.LENGTH_SHORT).show();
                     Log.d(TAG, "<<<<d=" + dd);
                     faces = getFace(dd);
+
+                    anger = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getAnger();
+                    disgust = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getDisgust();
+                    fear = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getFear();
+                    happiness = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getHappiness();
+                    neutral = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getNeutral();
+                    sadness = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSadness();
+                    surprise = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSurprise();
+
+                    double[] emo = {disgust, fear, happiness, neutral, sadness, surprise, anger};
+                    double max = disgust;
+                    int j=0;
+                    for (int i = 0; i < 7; i++) {
+                        if (emo[i] >= max) {
+                            max = emo[i];
+                            j = i;
+                        }
+                    }
+                    switch (j) {
+                        case 0:
+                            emoti = "厌恶";
+                            break;
+                        case 1:
+                            emoti = "恐惧";
+                            break;
+                        case 2:
+                            emoti = "高兴";
+                            break;
+                        case 3:
+                            emoti = "平静";
+                            break;
+                        case 4:
+                            emoti = "伤心";
+                            break;
+                        case 5:
+                            emoti = "惊讶";
+                            break;
+                        case 6:
+                            emoti = "愤怒";
+                            break;
+                    }
+
+                    String realgender=getFace(dd).getFaces().get(0).getAttributes().getGender().getValue();
+                    if (realgender.equals("Male"))
+                        genders="男";
+                    else genders="女";
+
+                    realethic=getFace(dd).getFaces().get(0).getAttributes().getEthnicity().getValue();
+                    if (realethic.equals("Asian")||realethic.equals("ASIAN"))
+                        ethic="亚洲人";
+                    else if (realethic.equals("White")||realethic.equals("WHITE"))
+                        ethic="白人";
+                    else ethic="黑人";
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            responseText.setText("女生认为你的颜值是："+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getFemale_score()
-                                    +"\n男生认为你的颜值是："+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getMale_score()
-                                    +"\n你的年龄是"+getFace(dd).getFaces().get(0).getAttributes().getAge().getValue()
-                                    +"\n你的性别是"+getFace(dd).getFaces().get(0).getAttributes().getGender().getValue()
-                                    +"\n你的人种是"+getFace(dd).getFaces().get(0).getAttributes().getEthnicity().getValue()
-                                    +"\n经过分析，你这张照片传递出来的各种情绪的概率是：\n愤怒："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getAnger()
-                                    +"\t厌恶："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getDisgust()
-                                    +"\t恐惧："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getFear()
-                                    +"\t高兴："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getHappiness()
-                                    +"\n平静："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getNeutral()
-                                    +"\t伤心："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSadness()
-                                    +"\t惊讶："+getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSurprise());
+
+
+                            yanzhi.setText("♂"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getMale_score()+" ♀"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getFemale_score());
+                            age.setText(getFace(dd).getFaces().get(0).getAttributes().getAge().getValue()+"");
+                            emotion.setText(emoti);
+                            gender.setText(genders);
+                            ethnicity.setText(ethic);
                             Log.d(TAG,dd);
                             editor = getSharedPreferences("data",MODE_PRIVATE).edit();
                             editor.putString("log",responseText.getText().toString());editor.apply();
+                            praise.setVisibility(View.VISIBLE);
                         }
                     });
 
