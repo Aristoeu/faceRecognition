@@ -9,12 +9,13 @@
     tools:context=".MainActivity"
     tools:visibility="visible"
     >
+
     <ImageView
         android:id="@+id/picture"
         android:layout_width="match_parent"
-        android:layout_height="400dp"
+        android:layout_height="375dp"
         android:layout_gravity="center_horizontal"
-        android:src="@drawable/doraemon"/>
+        android:src="@drawable/doraemon" />
 
 <LinearLayout
     android:layout_width="match_parent"
@@ -64,6 +65,10 @@
         android:textColor="@color/theme_red"
         android:text="——————你的颜值即将在这里展示——————"
         android:gravity="center"/>
+    <ProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/progress_bar"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -168,6 +173,7 @@
         android:textColor="@color/theme_red"
         android:visibility="invisible"
         android:id="@+id/praise"/>
+
 </LinearLayout>
 
 

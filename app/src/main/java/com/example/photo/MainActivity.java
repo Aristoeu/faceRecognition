@@ -25,10 +25,13 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.photo.Bean.FaceBean;
+import com.example.photo.Model.OnFaceListener;
+import com.example.photo.Model.PostFace;
 import com.google.gson.Gson;
 
 import java.io.BufferedOutputStream;
@@ -48,7 +51,6 @@ import okhttp3.Response;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-
 public class MainActivity extends AppCompatActivity {
     public static final int TAKE_PHOTO = 1;
     public static final int CHOOSE_PHOTO = 2;
@@ -62,7 +64,11 @@ public class MainActivity extends AppCompatActivity {
     TextView responseText,yanzhi,age,ethnicity,gender,emotion,praise;
     File file;
     SharedPreferences.Editor editor;
+    PostFace postFace;
+    OnFaceListener onFaceListener;
+    ProgressBar progressBar;
     double disgust,fear,happiness,neutral,sadness,surprise,anger;
+
     public void initView(){
         ActionBar actionBar=getSupportActionBar();
         if (actionBar!=null){
@@ -80,6 +86,27 @@ public class MainActivity extends AppCompatActivity {
         ethnicity=(TextView)findViewById(R.id.fra_ethnicity);
         yanzhi=(TextView)findViewById(R.id.fra_yanzhi);
         praise=(TextView)findViewById(R.id.praise);
+        postFace= new PostFace();
+        progressBar=(ProgressBar)findViewById(R.id.progress_bar);
+        onFaceListener= new OnFaceListener() {
+            @Override
+            public void onSuccess(String s) {
+                dd=s;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() { setView(dd); }});
+            }
+            @Override
+            public void onError() {
+                Toast.makeText(MainActivity.this,"return error",Toast.LENGTH_SHORT).show();
+            }
+        };
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setVisibility(View.INVISIBLE);
+            }
+        });
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,8 +138,15 @@ public class MainActivity extends AppCompatActivity {
         save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressBar.setVisibility(View.VISIBLE);
+                        praise.setVisibility(View.INVISIBLE);
+                    }
+                });
                 saveBitmapFile(bitmapp);
-                post_file(file);
+                postFace.post_face(file,onFaceListener);
             }
         });
         preference.setOnClickListener(new View.OnClickListener() {
@@ -269,122 +303,78 @@ public class MainActivity extends AppCompatActivity {
         return faceBean;
     }
 
-    protected void post_file(File file) {
-        OkHttpClient client = new OkHttpClient();
-        // form 表单形式上传
-        MultipartBody.Builder requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM);
-        if(file != null){
-            // MediaType.parse() 里面是上传的文件类型。
-            RequestBody body = RequestBody.create(MediaType.parse("image/jpg"), file);
-            String filename = file.getName();
-            // 参数分别为， 请求key ，文件名称 ， RequestBody
-            requestBody.addFormDataPart("image_file", file.getName(), body);
-            requestBody.addFormDataPart("api_key", "f8FQX5Z_LHY9ObTzQG4M_czr4kDQz7fq");
-            requestBody.addFormDataPart("api_secret", "0rVTpXFEI2GmD4ZJupdd0mmeZ6fQgLBh");
-            requestBody.addFormDataPart("return_attributes", "gender,age,emotion,ethnicity,beauty");
-        }
-
-        Request request = new Request.Builder().url("https://api-cn.faceplusplus.com/facepp/v3/detect")
-                .post(requestBody.build()).build();
-        // readTimeout("请求超时时间" , 时间单位);
-        client.newBuilder().readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.i("lfq" ,"onFailure");
-                //Toast.makeText(MainActivity.this,"upload error",Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    dd = response.body().string();
-                    Log.i("lfq", response.message() + " , body " + dd);
-                    //Toast.makeText(MainActivity.this,realfile,Toast.LENGTH_SHORT).show();
-                    Log.d(TAG, "<<<<d=" + dd);
-                    faces = getFace(dd);
-
-                    anger = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getAnger();
-                    disgust = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getDisgust();
-                    fear = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getFear();
-                    happiness = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getHappiness();
-                    neutral = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getNeutral();
-                    sadness = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSadness();
-                    surprise = getFace(dd).getFaces().get(0).getAttributes().getEmotion().getSurprise();
-
-                    double[] emo = {disgust, fear, happiness, neutral, sadness, surprise, anger};
-                    double max = disgust;
-                    int j=0;
-                    for (int i = 0; i < 7; i++) {
-                        if (emo[i] >= max) {
-                            max = emo[i];
-                            j = i;
-                        }
-                    }
-                    switch (j) {
-                        case 0:
-                            emoti = "厌恶";
-                            break;
-                        case 1:
-                            emoti = "恐惧";
-                            break;
-                        case 2:
-                            emoti = "高兴";
-                            break;
-                        case 3:
-                            emoti = "平静";
-                            break;
-                        case 4:
-                            emoti = "伤心";
-                            break;
-                        case 5:
-                            emoti = "惊讶";
-                            break;
-                        case 6:
-                            emoti = "愤怒";
-                            break;
-                    }
-
-                    String realgender=getFace(dd).getFaces().get(0).getAttributes().getGender().getValue();
-                    if (realgender.equals("Male"))
-                        genders="男";
-                    else genders="女";
-
-                    realethic=getFace(dd).getFaces().get(0).getAttributes().getEthnicity().getValue();
-                    if (realethic.equals("Asian")||realethic.equals("ASIAN"))
-                        ethic="亚洲人";
-                    else if (realethic.equals("White")||realethic.equals("WHITE"))
-                        ethic="白人";
-                    else ethic="黑人";
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            yanzhi.setText("♂"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getMale_score()+" ♀"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getFemale_score());
-                            age.setText(getFace(dd).getFaces().get(0).getAttributes().getAge().getValue()+"");
-                            emotion.setText(emoti);
-                            gender.setText(genders);
-                            ethnicity.setText(ethic);
-                            Log.d(TAG,dd);
-                            editor = getSharedPreferences("data",MODE_PRIVATE).edit();
-                            editor.putString("log","颜值："+yanzhi.getText().toString()+" 年龄:"+age.getText().toString()
-                                    +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());editor.apply();
-                            praise.setVisibility(View.VISIBLE);
-                        }
-                    });
-
-                } else {
-                    Log.i("lfq" ,response.message() + " error : body " + response.body().string());
-                    //Toast.makeText(MainActivity.this,"return error",Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-    }
-
     private BitmapFactory.Options getBitmapOption(int inSampleSize) {
         System.gc();
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPurgeable = true;
         options.inSampleSize = inSampleSize;
         return options;
+    }
+
+    public void setView(String ee){
+        anger = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getAnger();
+        disgust = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getDisgust();
+        fear = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getFear();
+        happiness = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getHappiness();
+        neutral = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getNeutral();
+        sadness = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getSadness();
+        surprise = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getSurprise();
+
+        double[] emo = {disgust, fear, happiness, neutral, sadness, surprise, anger};
+        double max = disgust;
+        int j=0;
+        for (int i = 0; i < 7; i++) {
+            if (emo[i] >= max) {
+                max = emo[i];
+                j = i;
+            }
+        }
+        switch (j) {
+            case 0:
+                emoti = "厌恶";
+                break;
+            case 1:
+                emoti = "恐惧";
+                break;
+            case 2:
+                emoti = "高兴";
+                break;
+            case 3:
+                emoti = "平静";
+                break;
+            case 4:
+                emoti = "伤心";
+                break;
+            case 5:
+                emoti = "惊讶";
+                break;
+            case 6:
+                emoti = "愤怒";
+                break;
+        }
+
+        String realgender=getFace(ee).getFaces().get(0).getAttributes().getGender().getValue();
+        if (realgender.equals("Male"))
+            genders="男";
+        else genders="女";
+        realethic=getFace(ee).getFaces().get(0).getAttributes().getEthnicity().getValue();
+        if (realethic.equals("Asian")||realethic.equals("ASIAN"))
+            ethic="亚洲人";
+        else if (realethic.equals("White")||realethic.equals("WHITE"))
+            ethic="白人";
+        else if (realethic.equals("India")||realethic.equals("Indian")||realethic.equals("INDIA")||realethic.equals("INDIAN"))
+            ethic="印度人";
+        else ethic="黑人";
+                yanzhi.setText("♂"+getFace(ee).getFaces().get(0).getAttributes().getBeauty().getMale_score()+" ♀"+getFace(ee).getFaces().get(0).getAttributes().getBeauty().getFemale_score());
+                age.setText(getFace(ee).getFaces().get(0).getAttributes().getAge().getValue()+"");
+                emotion.setText(emoti);
+                gender.setText(genders);
+                ethnicity.setText(ethic);
+                Log.d(TAG,ee);
+                editor = getSharedPreferences("data",MODE_PRIVATE).edit();
+                editor.putString("log","颜值："+yanzhi.getText().toString()+" 年龄:"+age.getText().toString()
+                        +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());editor.apply();
+                praise.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.INVISIBLE);
     }
 }
