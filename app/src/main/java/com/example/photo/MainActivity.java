@@ -1,6 +1,5 @@
 package com.example.photo;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -8,7 +7,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.ContentUris;
 import android.content.Intent;
@@ -21,11 +19,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Message;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -33,6 +28,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.photo.Bean.FaceBean;
 import com.google.gson.Gson;
 
 import java.io.BufferedOutputStream;
@@ -42,7 +38,6 @@ import java.io.IOException;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -50,66 +45,33 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 
-import static java.lang.String.valueOf;
-
 public class MainActivity extends AppCompatActivity {
     public static final int TAKE_PHOTO = 1;
-
     public static final int CHOOSE_PHOTO = 2;
-
     private ImageView picture;
-
     private Uri imageUri;
-
     Bitmap bitmapp;
-
-    String realfile;
-
+    Button takePhoto,chooseFromAlbum,save,preference;
+    String realfile,emoti,genders,ethic,realethic,dd;
     String TAG = "MainActivity";
-
     FaceBean faces;
-
     TextView responseText,yanzhi,age,ethnicity,gender,emotion,praise;
-
-    String responseData,emotions;
-
     File file;
-
-    String dd;
-
-    Bitmap bitmapsmall;
-
     SharedPreferences.Editor editor;
-
     double disgust,fear,happiness,neutral,sadness,surprise,anger;
-
-    String emoti,genders,ethic,realethic;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    public void initView(){
         ActionBar actionBar=getSupportActionBar();
         if (actionBar!=null){
             actionBar.hide();
         }
-        Button takePhoto = (Button) findViewById(R.id.take_photo);
-        Button chooseFromAlbum = (Button) findViewById(R.id.choose_from_album);
-        Button save = (Button)findViewById(R.id.save);
-       // Button sendRequest = (Button)findViewById(R.id.upload);
-        Button preference = (Button)findViewById(R.id.preference);
+        takePhoto = (Button) findViewById(R.id.take_photo);
+        chooseFromAlbum = (Button) findViewById(R.id.choose_from_album);
+        save = (Button)findViewById(R.id.save);
+        preference = (Button)findViewById(R.id.preference);
         picture = (ImageView) findViewById(R.id.picture);
         responseText=(TextView)findViewById(R.id.response_text);
         emotion=(TextView)findViewById(R.id.fra_emotion);
@@ -118,12 +80,16 @@ public class MainActivity extends AppCompatActivity {
         ethnicity=(TextView)findViewById(R.id.fra_ethnicity);
         yanzhi=(TextView)findViewById(R.id.fra_yanzhi);
         praise=(TextView)findViewById(R.id.praise);
-
+    }
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        initView();
         takePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 创建File对象，用于存储拍照后的图片
-                File outputImage = new File(getExternalCacheDir(), "output_image.jpg");
+                File outputImage = new File(getExternalCacheDir(), "output_image.jpg"); // 创建File对象，用于存储拍照后的图片
                 try {
                     if (outputImage.exists()) {
                         outputImage.delete();
@@ -137,8 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     imageUri = FileProvider.getUriForFile(MainActivity.this, "com.example.cameraalbumtest.fileprovider", outputImage);
                 }
-                // 启动相机程序
-                Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+                Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");// 启动相机程序
                 intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
                 startActivityForResult(intent, TAKE_PHOTO);
             }
@@ -158,8 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         SharedPreferences pref = getSharedPreferences("data",MODE_PRIVATE);
                         String log =pref.getString("log","");
-                        Toast.makeText(MainActivity.this,log,Toast.LENGTH_SHORT).show();
-                        responseText.setText(log);
+                        Toast.makeText(MainActivity.this,"上次的测试结果为：\n"+log,Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -174,9 +138,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-
-
     }
 
     private void openAlbum() {
@@ -286,26 +247,28 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "failed to get image", Toast.LENGTH_SHORT).show();
         }
     }
-    public void saveBitmapFile(Bitmap bitmap)
-    {
+
+    public void saveBitmapFile(Bitmap bitmap) {
         realfile = Environment.getExternalStorageDirectory().toString()+"/001.jpg";
         Log.d("result",realfile);
-        Toast.makeText(this,realfile,Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this,realfile,Toast.LENGTH_SHORT).show();
         file=new File(realfile);//将要保存图片的路径
         try{
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file));
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
         bos.flush();
         bos.close();
-    }catch (IOException e){
-        e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
-    }
+
     public static FaceBean getFace(String res){
         Gson gson = new Gson();
         FaceBean faceBean = gson.fromJson(res,FaceBean.class);
         return faceBean;
     }
+
     protected void post_file(File file) {
         OkHttpClient client = new OkHttpClient();
         // form 表单形式上传
@@ -395,8 +358,6 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-
-
                             yanzhi.setText("♂"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getMale_score()+" ♀"+getFace(dd).getFaces().get(0).getAttributes().getBeauty().getFemale_score());
                             age.setText(getFace(dd).getFaces().get(0).getAttributes().getAge().getValue()+"");
                             emotion.setText(emoti);
@@ -404,7 +365,8 @@ public class MainActivity extends AppCompatActivity {
                             ethnicity.setText(ethic);
                             Log.d(TAG,dd);
                             editor = getSharedPreferences("data",MODE_PRIVATE).edit();
-                            editor.putString("log",responseText.getText().toString());editor.apply();
+                            editor.putString("log","颜值："+yanzhi.getText().toString()+" 年龄:"+age.getText().toString()
+                                    +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());editor.apply();
                             praise.setVisibility(View.VISIBLE);
                         }
                     });
@@ -417,9 +379,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
-    private BitmapFactory.Options getBitmapOption(int inSampleSize)
 
-    {
+    private BitmapFactory.Options getBitmapOption(int inSampleSize) {
         System.gc();
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPurgeable = true;

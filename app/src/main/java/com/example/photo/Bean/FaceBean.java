@@ -1,4 +1,4 @@
-package com.example.photo;
+package com.example.photo.Bean;
 
 
 import java.util.List;
