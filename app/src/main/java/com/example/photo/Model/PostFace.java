@@ -1,11 +1,15 @@
 package com.example.photo.Model;
 
+import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.example.photo.MainActivity;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
+import android.content.Context;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -34,12 +38,14 @@ public class PostFace implements FaceModel {
 
         Request request = new Request.Builder().url("https://api-cn.faceplusplus.com/facepp/v3/detect")
                 .post(requestBody.build()).build();
-        // readTimeout("请求超时时间" , 时间单位);
+        //readTimeout("请求超时时间" , 时间单位);
         client.newBuilder().readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.i("lfq", "onFailure");
-                //Toast.makeText(MainActivity.this,"upload error",Toast.LENGTH_SHORT).show();
+
+                //Toast.makeText(context,"upload error", Toast.LENGTH_SHORT).show();
+                mListener.onFailed();
             }
 
             @Override

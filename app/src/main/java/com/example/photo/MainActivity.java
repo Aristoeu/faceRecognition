@@ -38,56 +38,39 @@ import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
-    public static final int TAKE_PHOTO = 1;
-    public static final int CHOOSE_PHOTO = 2;
+    public static final int TAKE_PHOTO = 1,CHOOSE_PHOTO = 2;
     private ImageView picture;
     private Uri imageUri;
     private Bitmap bitmapp=null;
-    Button takePhoto,chooseFromAlbum,save,preference;
-    String realfile,emoti,genders,ethic,realethic,dd;
-    String TAG = "MainActivity",log=null;
-    FaceBean faces;
-    TextView responseText,yanzhi,age,ethnicity,gender,emotion,praise;
-    File file=null;
-    SharedPreferences.Editor editor;
-    PostFace postFace;
-    OnFaceListener onFaceListener;
-    ProgressBar progressBar;
-    double disgust,fear,happiness,neutral,sadness,surprise,anger;
+    private Button takePhoto,chooseFromAlbum,save,preference;
+    private String emoti,dd,log=null;
+    private TextView yanzhi,age,ethnicity,gender,emotion,praise;
+    private File file=null;
+    private PostFace postFace;
+    private OnFaceListener onFaceListener;
+    private ProgressBar progressBar;
 
     public void initView(){
         ActionBar actionBar=getSupportActionBar();
         if (actionBar!=null){
             actionBar.hide();
         }
-        takePhoto = (Button) findViewById(R.id.take_photo);
-        chooseFromAlbum = (Button) findViewById(R.id.choose_from_album);
-        save = (Button)findViewById(R.id.save);
-        preference = (Button)findViewById(R.id.preference);
-        picture = (ImageView) findViewById(R.id.picture);
-        responseText=(TextView)findViewById(R.id.response_text);
-        emotion=(TextView)findViewById(R.id.fra_emotion);
-        age=(TextView)findViewById(R.id.fra_age);
-        gender=(TextView)findViewById(R.id.fra_gender);
-        ethnicity=(TextView)findViewById(R.id.fra_ethnicity);
-        yanzhi=(TextView)findViewById(R.id.fra_yanzhi);
-        praise=(TextView)findViewById(R.id.praise);
+        takePhoto = findViewById(R.id.take_photo);
+        chooseFromAlbum = findViewById(R.id.choose_from_album);
+        save = findViewById(R.id.save);
+        preference = findViewById(R.id.preference);
+        picture = findViewById(R.id.picture);
+        emotion=findViewById(R.id.fra_emotion);
+        age=findViewById(R.id.fra_age);
+        gender=findViewById(R.id.fra_gender);
+        ethnicity=findViewById(R.id.fra_ethnicity);
+        yanzhi=findViewById(R.id.fra_yanzhi);
+        praise=findViewById(R.id.praise);
         postFace= new PostFace();
-        progressBar=(ProgressBar)findViewById(R.id.progress_bar);
+        progressBar=findViewById(R.id.progress_bar);
         onFaceListener= new OnFaceListener() {
             @Override
             public void onSuccess(String s) {
@@ -103,8 +86,25 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public void onError() {
-                Toast.makeText(MainActivity.this,"你手机没联网吧！",Toast.LENGTH_SHORT).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,"网络不好，请重试！",Toast.LENGTH_SHORT).show();
+                    }
+                });
+
             }
+            @Override
+            public void onFailed(){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,"网络不好！",Toast.LENGTH_LONG).show();
+                    }
+                });
+
+            }
+
         };
         runOnUiThread(new Runnable() {
             @Override
@@ -316,8 +316,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveBitmapFile(Bitmap bitmap) {
-        realfile = Environment.getExternalStorageDirectory().toString()+"/001.jpg";
-        Log.d("result",realfile);
+        String realfile = Environment.getExternalStorageDirectory().toString() + "/001.jpg";
+        Log.d("result", realfile);
         //Toast.makeText(this,realfile,Toast.LENGTH_SHORT).show();
         file=new File(realfile);//将要保存图片的路径
         try{
@@ -345,13 +345,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setView(String ee){
-        anger = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getAnger();
-        disgust = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getDisgust();
-        fear = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getFear();
-        happiness = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getHappiness();
-        neutral = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getNeutral();
-        sadness = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getSadness();
-        surprise = getFace(ee).getFaces().get(0).getAttributes().getEmotion().getSurprise();
+        double disgust,fear,happiness,neutral,sadness,surprise,anger;
+        FaceBean.FacesBean.AttributesBean.EmotionBean emotionBean=getFace(ee).getFaces().get(0).getAttributes().getEmotion();
+        anger = emotionBean.getAnger();
+        disgust = emotionBean.getDisgust();
+        fear = emotionBean.getFear();
+        happiness = emotionBean.getHappiness();
+        neutral = emotionBean.getNeutral();
+        sadness = emotionBean.getSadness();
+        surprise = emotionBean.getSurprise();
 
         double[] emo = {disgust, fear, happiness, neutral, sadness, surprise, anger};
         double max = disgust;
@@ -386,27 +388,31 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
 
-        String realgender=getFace(ee).getFaces().get(0).getAttributes().getGender().getValue();
-        if (realgender.equals("Male"))
-            genders="男";
-        else genders="女";
-        realethic=getFace(ee).getFaces().get(0).getAttributes().getEthnicity().getValue();
-        if (realethic.equals("Asian")||realethic.equals("ASIAN"))
-            ethic="亚洲人";
-        else if (realethic.equals("White")||realethic.equals("WHITE"))
-            ethic="白人";
-        else if (realethic.equals("India")||realethic.equals("Indian")||realethic.equals("INDIA")||realethic.equals("INDIAN"))
-            ethic="印度人";
-        else ethic="黑人";
+        String realGender=getFace(ee).getFaces().get(0).getAttributes().getGender().getValue();
+        String genders;
+        if (realGender.equals("Male"))
+            genders ="男";
+        else genders ="女";
+        String realEthic = getFace(ee).getFaces().get(0).getAttributes().getEthnicity().getValue();
+        String ethic;
+        if (realEthic.equals("Asian")|| realEthic.equals("ASIAN"))
+            ethic ="亚洲人";
+        else if (realEthic.equals("White")|| realEthic.equals("WHITE"))
+            ethic ="白人";
+        else if (realEthic.equals("India")|| realEthic.equals("Indian")|| realEthic.equals("INDIA")|| realEthic.equals("INDIAN"))
+            ethic ="印度人";
+        else ethic ="黑人";
                 yanzhi.setText("♂"+getFace(ee).getFaces().get(0).getAttributes().getBeauty().getMale_score()+" ♀"+getFace(ee).getFaces().get(0).getAttributes().getBeauty().getFemale_score());
                 age.setText(getFace(ee).getFaces().get(0).getAttributes().getAge().getValue()+"");
                 emotion.setText(emoti);
                 gender.setText(genders);
                 ethnicity.setText(ethic);
-                Log.d(TAG,ee);
-                editor = getSharedPreferences("data",MODE_PRIVATE).edit();
+        String TAG = "MainActivity";
+        Log.d(TAG,ee);
+        SharedPreferences.Editor editor = getSharedPreferences("data", MODE_PRIVATE).edit();
                 editor.putString("log","颜值："+yanzhi.getText().toString()+" 年龄:"+age.getText().toString()
-                        +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());editor.apply();
+                        +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());
+        editor.apply();
                         log="ok";
                 praise.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.INVISIBLE);
