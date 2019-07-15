@@ -16,15 +16,15 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class PostFace implements FaceModel {
-    String ee;
-    public void post_face(File file, final OnFaceListener mlistener){
+    private String ee;
+
+    public void post_face(File file, final OnFaceListener mListener) {
         OkHttpClient client = new OkHttpClient();
         // form 表单形式上传
         MultipartBody.Builder requestBody = new MultipartBody.Builder().setType(MultipartBody.FORM);
-        if(file != null){
+        if (file != null) {
             // MediaType.parse() 里面是上传的文件类型。
             RequestBody body = RequestBody.create(MediaType.parse("image/jpg"), file);
-            String filename = file.getName();
             // 参数分别为， 请求key ，文件名称 ， RequestBody
             requestBody.addFormDataPart("image_file", file.getName(), body);
             requestBody.addFormDataPart("api_key", "f8FQX5Z_LHY9ObTzQG4M_czr4kDQz7fq");
@@ -38,7 +38,7 @@ public class PostFace implements FaceModel {
         client.newBuilder().readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                Log.i("lfq" ,"onFailure");
+                Log.i("lfq", "onFailure");
                 //Toast.makeText(MainActivity.this,"upload error",Toast.LENGTH_SHORT).show();
             }
 
@@ -46,9 +46,9 @@ public class PostFace implements FaceModel {
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     ee = response.body().string();
-                    mlistener.onSuccess(ee);
+                    mListener.onSuccess(ee);
                 } else {
-                    mlistener.onError();
+                    mListener.onError();
                 }
             }
         });

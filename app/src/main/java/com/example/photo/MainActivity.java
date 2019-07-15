@@ -56,13 +56,13 @@ public class MainActivity extends AppCompatActivity {
     public static final int CHOOSE_PHOTO = 2;
     private ImageView picture;
     private Uri imageUri;
-    Bitmap bitmapp;
+    private Bitmap bitmapp=null;
     Button takePhoto,chooseFromAlbum,save,preference;
     String realfile,emoti,genders,ethic,realethic,dd;
-    String TAG = "MainActivity";
+    String TAG = "MainActivity",log=null;
     FaceBean faces;
     TextView responseText,yanzhi,age,ethnicity,gender,emotion,praise;
-    File file;
+    File file=null;
     SharedPreferences.Editor editor;
     PostFace postFace;
     OnFaceListener onFaceListener;
@@ -94,11 +94,16 @@ public class MainActivity extends AppCompatActivity {
                 dd=s;
                 runOnUiThread(new Runnable() {
                     @Override
-                    public void run() { setView(dd); }});
+                    public void run() {
+                        if(dd.length()<=500){
+                            progressBar.setVisibility(View.INVISIBLE);
+                            Toast.makeText(MainActivity.this,"你传的这张照片上没有脸！",Toast.LENGTH_LONG).show();}
+                        else setView(dd);
+                    }});
             }
             @Override
             public void onError() {
-                Toast.makeText(MainActivity.this,"return error",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this,"你手机没联网吧！",Toast.LENGTH_SHORT).show();
             }
         };
         runOnUiThread(new Runnable() {
@@ -112,32 +117,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Toast.makeText(MainActivity.this,"请确认你给了拍照和相册存储的权限！",Toast.LENGTH_LONG).show();
         initView();
+        init();
+    }
+//butterknife
+    private void init() {
         takePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                File outputImage = new File(getExternalCacheDir(), "output_image.jpg"); // 创建File对象，用于存储拍照后的图片
-                try {
-                    if (outputImage.exists()) {
-                        outputImage.delete();
-                    }
-                    outputImage.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (Build.VERSION.SDK_INT < 24) {
-                    imageUri = Uri.fromFile(outputImage);
-                } else {
-                    imageUri = FileProvider.getUriForFile(MainActivity.this, "com.example.cameraalbumtest.fileprovider", outputImage);
-                }
-                Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");// 启动相机程序
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
-                startActivityForResult(intent, TAKE_PHOTO);
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{ Manifest.permission.CAMERA }, 2);
+                }else
+                takephoto();
             }
         });
         save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (bitmapp==null)
+                    Toast.makeText(MainActivity.this,"请先选照片！",Toast.LENGTH_LONG).show();
+                else{
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -147,19 +147,22 @@ public class MainActivity extends AppCompatActivity {
                 });
                 saveBitmapFile(bitmapp);
                 postFace.post_face(file,onFaceListener);
-            }
+            }}
         });
         preference.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (log==null)
+                    Toast.makeText(MainActivity.this,"你还没有测试过哦！",Toast.LENGTH_LONG).show();
+                else {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         SharedPreferences pref = getSharedPreferences("data",MODE_PRIVATE);
-                        String log =pref.getString("log","");
+                        log =pref.getString("log","");
                         Toast.makeText(MainActivity.this,"上次的测试结果为：\n"+log,Toast.LENGTH_LONG).show();
                     }
-                });
+                });}
             }
         });
         chooseFromAlbum.setOnClickListener(new View.OnClickListener() {
@@ -172,6 +175,26 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void takephoto() {
+        File outputImage = new File(getExternalCacheDir(), "output_image.jpg"); // 创建File对象，用于存储拍照后的图片
+        try {
+            if (outputImage.exists()) {
+                outputImage.delete();
+            }
+            outputImage.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (Build.VERSION.SDK_INT < 24) {
+            imageUri = Uri.fromFile(outputImage);
+        } else {
+            imageUri = FileProvider.getUriForFile(MainActivity.this, "com.example.cameraalbumtest.fileprovider", outputImage);
+        }
+        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");// 启动相机程序
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+        startActivityForResult(intent, TAKE_PHOTO);
     }
 
     private void openAlbum() {
@@ -190,6 +213,12 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "You denied the permission", Toast.LENGTH_SHORT).show();
                 }
                 break;
+            case 2:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    takephoto();
+                } else {
+                    Toast.makeText(this, "You denied the permission", Toast.LENGTH_SHORT).show();
+                }
             default:
         }
     }
@@ -275,6 +304,10 @@ public class MainActivity extends AppCompatActivity {
         if (imagePath != null) {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
            // bitmapp=bitmap;
+            file=new File(imagePath);
+            if(file.length()<=900000)
+                bitmapp=BitmapFactory.decodeFile(imagePath);
+            else
             bitmapp=BitmapFactory.decodeFile(imagePath,getBitmapOption(6));
             picture.setImageBitmap(bitmap);
         } else {
@@ -374,6 +407,7 @@ public class MainActivity extends AppCompatActivity {
                 editor = getSharedPreferences("data",MODE_PRIVATE).edit();
                 editor.putString("log","颜值："+yanzhi.getText().toString()+" 年龄:"+age.getText().toString()
                         +"\n" +"性别："+gender.getText().toString()+" 人种："+ethnicity.getText().toString());editor.apply();
+                        log="ok";
                 praise.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.INVISIBLE);
     }
